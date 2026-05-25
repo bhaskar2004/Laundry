@@ -1,0 +1,10 @@
+node_modules/
+.wwebjs_auth/
+.wwebjs_cache/
+build/
+.env
+.DS_Store
+.gemini/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
