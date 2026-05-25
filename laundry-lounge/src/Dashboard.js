@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { loadHistory, saveHistory, formatISODate, getTodayISO, getTomorrowISO, shiftDate, DELIVERY_SLOTS } from './helpers';
 
 export default function Dashboard({ onNav }) {
@@ -17,6 +17,30 @@ export default function Dashboard({ onNav }) {
   const revenue = dayBills.reduce((s, b) => s + (b.total || 0), 0);
 
   const [toast, setToast] = useState(null);
+  const [gatewayStatus, setGatewayStatus] = useState({ online: false, connected: false, qr: null });
+  const [gatewayUrl, setGatewayUrl] = useState(() => localStorage.getItem('laundry_gateway_url') || 'http://localhost:5001');
+  const [isEditingUrl, setIsEditingUrl] = useState(false);
+  const [urlInput, setUrlInput] = useState(gatewayUrl);
+
+  useEffect(() => {
+    const checkStatus = async () => {
+      try {
+        const res = await fetch(`${gatewayUrl}/status`);
+        if (res.ok) {
+          const data = await res.json();
+          setGatewayStatus(data);
+        } else {
+          setGatewayStatus({ online: false, connected: false, qr: null });
+        }
+      } catch (e) {
+        setGatewayStatus({ online: false, connected: false, qr: null });
+      }
+    };
+
+    checkStatus();
+    const interval = setInterval(checkStatus, 4000);
+    return () => clearInterval(interval);
+  }, [gatewayUrl]);
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -51,7 +75,7 @@ export default function Dashboard({ onNav }) {
     try {
       showToast('Sending background WhatsApp notification...', 'info');
       
-      const response = await fetch('http://localhost:5001/send', {
+      const response = await fetch(`${gatewayUrl}/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone, message })
@@ -256,6 +280,75 @@ export default function Dashboard({ onNav }) {
               <img src={process.env.PUBLIC_URL + '/Laundry and dry cleaning-bro.svg'} alt="Laundry logistics" />
               <h3>Logistics Management</h3>
               <p>Monitor your active drop-offs and process laundry slots dynamically.</p>
+            </div>
+
+            <div className="sidebar-card gateway-status-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                <h3>WhatsApp Gateway</h3>
+                <button 
+                  onClick={() => { setIsEditingUrl(!isEditingUrl); setUrlInput(gatewayUrl); }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.7rem', textDecoration: 'underline', color: 'var(--accent)', fontWeight: 'bold', padding: 0 }}
+                >
+                  {isEditingUrl ? 'Cancel' : 'Configure'}
+                </button>
+              </div>
+
+              {isEditingUrl ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%', marginTop: 8, marginBottom: 8 }}>
+                  <input 
+                    type="text" 
+                    value={urlInput} 
+                    onChange={(e) => setUrlInput(e.target.value)} 
+                    style={{ padding: '4px 8px', border: '1px solid var(--ink)', fontFamily: 'var(--mono)', fontSize: '0.7rem', width: '100%' }}
+                  />
+                  <button 
+                    onClick={() => {
+                      let cleanUrl = urlInput.trim();
+                      if (cleanUrl.endsWith('/')) {
+                        cleanUrl = cleanUrl.slice(0, -1);
+                      }
+                      localStorage.setItem('laundry_gateway_url', cleanUrl);
+                      setGatewayUrl(cleanUrl);
+                      setIsEditingUrl(false);
+                      showToast('Gateway URL updated!', 'success');
+                    }}
+                    style={{ padding: '6px', background: 'var(--ink)', color: 'var(--white)', border: 'none', fontFamily: 'var(--sans)', fontSize: '0.7rem', cursor: 'pointer', fontWeight: 'bold' }}
+                  >
+                    Save URL
+                  </button>
+                </div>
+              ) : (
+                <div style={{ fontSize: '0.68rem', color: 'var(--ink-light)', fontFamily: 'var(--mono)', marginTop: 2, marginBottom: 4 }}>
+                  {gatewayUrl}
+                </div>
+              )}
+
+              <div className="gateway-status-indicator">
+                <span className={`status-dot ${gatewayStatus.online ? (gatewayStatus.connected ? 'online' : 'unlinked') : 'offline'}`} />
+                <span className="status-text">
+                  {!gatewayStatus.online ? 'Offline' : (gatewayStatus.connected ? 'Connected' : 'Scan QR')}
+                </span>
+              </div>
+              
+              {gatewayStatus.online && !gatewayStatus.connected && gatewayStatus.qr ? (
+                <div className="qr-container">
+                  <p className="qr-hint">Scan with WhatsApp to link:</p>
+                  <img 
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(gatewayStatus.qr)}`} 
+                    alt="Scan to link WhatsApp" 
+                    className="qr-image"
+                  />
+                </div>
+              ) : gatewayStatus.online && !gatewayStatus.connected ? (
+                <p className="gateway-help-text">Initializing WhatsApp client. QR code will appear here in a moment...</p>
+              ) : gatewayStatus.connected ? (
+                <p className="gateway-help-text" style={{color: 'var(--green-dark)', fontWeight: 'bold'}}>Connected & Ready! Background messages will be sent automatically.</p>
+              ) : (
+                <div className="gateway-offline-info">
+                  <p className="gateway-help-text">Background server is offline. Ready alerts will open in a manual tab.</p>
+                  <p className="gateway-help-text" style={{marginTop: '6px', fontSize: '0.68rem', color: 'var(--ink-light)'}}>To start: <code style={{fontFamily: 'var(--mono)', background: '#eae6df', padding: '2px 4px', display: 'inline-block'}}>node index.js</code> in <code style={{fontFamily: 'var(--mono)'}}>laundry-gateway/</code></p>
+                </div>
+              )}
             </div>
           </div>
         </div>

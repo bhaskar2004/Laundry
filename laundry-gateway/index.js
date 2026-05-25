@@ -8,6 +8,7 @@ app.use(cors());
 app.use(express.json());
 
 let isClientReady = false;
+let lastQr = null;
 
 // Set up WhatsApp client with LocalAuth to persist login session
 const client = new Client({
@@ -29,6 +30,7 @@ const client = new Client({
 });
 
 client.on('qr', (qr) => {
+  lastQr = qr;
   console.log('\n======================================================');
   console.log('SCAN THE QR CODE BELOW WITH WHATSAPP TO CONNECT:');
   console.log('======================================================\n');
@@ -37,6 +39,7 @@ client.on('qr', (qr) => {
 
 client.on('ready', () => {
   isClientReady = true;
+  lastQr = null;
   console.log('\n======================================================');
   console.log('WhatsApp client is ready and connected!');
   console.log('======================================================\n');
@@ -48,6 +51,7 @@ client.on('auth_failure', (msg) => {
 
 client.on('disconnected', (reason) => {
   isClientReady = false;
+  lastQr = null;
   console.log('WhatsApp client was disconnected:', reason);
 });
 
@@ -55,7 +59,8 @@ client.on('disconnected', (reason) => {
 app.get('/status', (req, res) => {
   res.json({
     online: true,
-    connected: isClientReady
+    connected: isClientReady,
+    qr: lastQr
   });
 });
 

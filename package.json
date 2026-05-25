@@ -1,0 +1,8 @@
+{
+  "name": "laundry-lounge-root",
+  "version": "1.0.0",
+  "description": "Root orchestrator for Laundry Lounge Billing",
+  "scripts": {
+    "build": "cd laundry-lounge && npm install && npm run build"
+  }
+}
