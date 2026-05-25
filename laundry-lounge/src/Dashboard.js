@@ -201,15 +201,15 @@ export default function Dashboard({ onNav }) {
         {!isToday && <button className="dash-date-btn" onClick={() => setViewDate(todayISO)}>Today</button>}
       </div>
 
-      {grouped.length === 0 ? (
-        <div className="dash-empty">
-          <img src={process.env.PUBLIC_URL + '/Laundry and dry cleaning-bro.svg'} alt="No Deliveries" style={{ width: '280px', height: '280px', objectFit: 'contain', marginBottom: '14px' }} />
-          <div className="dash-empty-text">No deliveries scheduled for {dayLabel}</div>
-        </div>
-      ) : (
-        <div className="dash-layout">
-          <div className="dash-main">
-            {grouped.map(slot => (
+      <div className="dash-layout">
+        <div className="dash-main">
+          {grouped.length === 0 ? (
+            <div className="dash-empty">
+              <img src={process.env.PUBLIC_URL + '/Laundry and dry cleaning-bro.svg'} alt="No Deliveries" style={{ width: '280px', height: '280px', objectFit: 'contain', marginBottom: '14px' }} />
+              <div className="dash-empty-text">No deliveries scheduled for {dayLabel}</div>
+            </div>
+          ) : (
+            grouped.map(slot => (
               <div key={slot.id} className="slot-group">
                 <div className="slot-header">
                   <span className="slot-icon" style={{display: 'inline-flex', alignItems: 'center'}}>{getSlotIcon(slot.id)}</span>
@@ -271,9 +271,11 @@ export default function Dashboard({ onNav }) {
                       )}
                     </div>
                   </div>
-                ))}
+                ))
+              }
               </div>
-            ))}
+            ))
+          )}
           </div>
           <div className="dash-sidebar">
             <div className="sidebar-card">
@@ -352,7 +354,6 @@ export default function Dashboard({ onNav }) {
             </div>
           </div>
         </div>
-      )}
       
       {toast && (
         <div className={`dash-toast-container ${toast.type}`}>
